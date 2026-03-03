@@ -110,6 +110,13 @@ body{font-family:'Cabinet Grotesk',sans-serif;background:var(--bg);color:var(--t
 .modal-actions{display:flex;gap:10px;margin-top:22px;}
 .btn-sec{flex:1;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text2);cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;font-size:0.88rem;transition:all .2s;}
 .btn-sec:hover{color:var(--text);border-color:var(--border2);}
+
+.op-history{margin-top:6px;}
+.op-history-item{font-size:0.68rem;font-family:'Instrument Mono',monospace;color:var(--text2);background:var(--card2);border-radius:6px;padding:3px 8px;margin-top:3px;display:inline-block;}
+.admin-history{margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);}
+.admin-history-row{font-size:0.72rem;font-family:'Instrument Mono',monospace;color:var(--text2);padding:3px 0;}
+.admin-history-row span.old{color:var(--minus);text-decoration:line-through;}
+.admin-history-row span.new{color:var(--plus);}
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -404,7 +411,16 @@ async function loadAllUsers() {
             const ac = o.amount>=0?'var(--plus)':'var(--minus)';
             const s = o.amount>=0?'+':'';
             const d = new Date(o.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
-            return '<div class="admin-op-row"><span>'+icon+' '+esc(o.label)+' <span style="color:var(--text2);font-size:0.7rem">'+d+'</span></span><span style="color:'+ac+';font-weight:700">'+s+fmt(o.amount)+'</span></div>';
+            const histHtml = (o.history && o.history.length > 0)
+              ? '<div class="admin-history">'+o.history.map(h => {
+                  const hd = new Date(h.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+                  return h.changes.map(c => c.type==='amount'
+                    ? '<div class="admin-history-row">✎ '+hd+' — montant : <span class="old">'+fmt(o.amount<0?-c.old:c.old)+'</span> → <span class="new">'+fmt(o.amount<0?-c.new:c.new)+'</span></div>'
+                    : '<div class="admin-history-row">✎ '+hd+' — libelle : <span class="old">'+esc(c.old)+'</span> → <span class="new">'+esc(c.new)+'</span></div>'
+                  ).join('')
+                }).join('')+'</div>'
+              : '';
+            return '<div class="admin-op-row" style="flex-direction:column;align-items:flex-start"><div style="display:flex;justify-content:space-between;width:100%"><span>'+icon+' '+esc(o.label)+' <span style="color:var(--text2);font-size:0.7rem">'+d+'</span></span><span style="color:'+ac+';font-weight:700">'+s+fmt(o.amount)+'</span></div>'+histHtml+'</div>';
           }).join('');
       return '<div class="admin-card">'
         +'<div class="admin-card-header" onclick="toggleAdminCard(this)">'
@@ -495,6 +511,14 @@ window.saveEdit = function() {
   const label = document.getElementById('edit-label').value.trim();
   const amount = parseFloat(document.getElementById('edit-amount').value);
   if (!label || isNaN(amount) || amount <= 0) return;
+  // Record history
+  const changes = [];
+  if (op.label !== label) changes.push({ type: 'label', old: op.label, new: label });
+  if (Math.abs(op.amount) !== amount) changes.push({ type: 'amount', old: Math.abs(op.amount), new: amount });
+  if (changes.length > 0) {
+    if (!op.history) op.history = [];
+    op.history.push({ date: new Date().toISOString(), changes });
+  }
   op.label = label;
   op.amount = op.amount < 0 ? -amount : amount;
   saveFB();
@@ -538,7 +562,15 @@ function render() {
     return '<div class="op-item">'
       +'<div class="op-icon '+ac+'">'+icon+'</div>'
       +'<div class="op-info"><div class="op-label">'+esc(o.label)+'<span class="tag tag-'+ac+'">'+tag+'</span></div>'
-      +'<div class="op-date">'+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})+' · '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div></div>'
+      +'<div class="op-date">'+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})+' · '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div>'
+      +(o.history && o.history.length > 0 ? '<div class="op-history">'+o.history.map(h => {
+          const hd = new Date(h.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+          return h.changes.map(c => c.type==='amount'
+            ? '<span class="op-history-item">✎ '+hd+' : '+fmt(c.type==='amount'&&o.amount<0?-c.old:c.old)+' → '+fmt(c.type==='amount'&&o.amount<0?-c.new:c.new)+'</span>'
+            : '<span class="op-history-item">✎ '+hd+' : "'+esc(c.old)+'" → "'+esc(c.new)+'"</span>'
+          ).join('')
+        }).join('')+'</div>' : '')
+      +'</div>'
       +'<div class="op-amount '+ac+'">'+sign+fmt(o.amount)+'</div>'
       +'<button class="btn-action edit" onclick="openEdit(\''+o.id+'\')" title="Modifier">✎</button>'
       +'<button class="btn-action del" onclick="deleteOp(\''+o.id+'\')" title="Supprimer">✕</button>'
