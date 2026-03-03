@@ -601,6 +601,13 @@ window.doLogout = async () => {
   if (fbReady) await FB.signOut(FB.auth);
   else showAuth();
   ops = [];
+  document.getElementById('l-txt').textContent = 'Se connecter';
+  document.getElementById('r-txt').textContent = 'Creer mon compte';
+  document.getElementById('l-email').value = '';
+  document.getElementById('l-pass').value = '';
+  document.getElementById('r-email').value = '';
+  document.getElementById('r-pass').value = '';
+  document.getElementById('auth-err').textContent = '';
 };
 
 function setErr(m) { document.getElementById('auth-err').textContent = m; }
