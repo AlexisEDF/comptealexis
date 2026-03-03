@@ -412,13 +412,13 @@ body {
     </div>
 
     <div id="form-login">
-      <div class="field"><label>Email</label><input type="email" id="l-email" placeholder="vous@exemple.fr" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="field"><label>Identifiant</label><input type="text" id="l-email" placeholder="Ex: alexis, jean..." onkeydown="if(event.key==='Enter')doLogin()"></div>
       <div class="field"><label>Mot de passe</label><input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <button class="btn-main" onclick="doLogin()"><span id="l-txt">Se connecter</span></button>
     </div>
 
     <div id="form-register" style="display:none">
-      <div class="field"><label>Email</label><input type="email" id="r-email" placeholder="vous@exemple.fr"></div>
+      <div class="field"><label>Identifiant</label><input type="text" id="r-email" placeholder="Ex: alexis, jean..."></div>
       <div class="field"><label>Mot de passe</label><input type="password" id="r-pass" placeholder="Min. 6 caractères"></div>
       <button class="btn-main" onclick="doRegister()"><span id="r-txt">Créer mon compte</span></button>
     </div>
@@ -574,9 +574,10 @@ window.switchTab = function(t) {
 };
 
 window.doLogin = async () => {
-  const e = document.getElementById('l-email').value;
+  const raw = document.getElementById('l-email').value.trim().toLowerCase().replace(/\s+/g,'_');
+  const e = raw + '@moncompte.fr';
   const p = document.getElementById('l-pass').value;
-  if (!e||!p) return setErr('Remplissez tous les champs');
+  if (!raw||!p) return setErr('Remplissez tous les champs');
   if (fbReady) {
     document.getElementById('l-txt').innerHTML = '<span class="spin"></span>';
     try { await FB.signInWithEmailAndPassword(FB.auth, e, p); }
@@ -585,9 +586,10 @@ window.doLogin = async () => {
 };
 
 window.doRegister = async () => {
-  const e = document.getElementById('r-email').value;
+  const raw = document.getElementById('r-email').value.trim().toLowerCase().replace(/\s+/g,'_');
+  const e = raw + '@moncompte.fr';
   const p = document.getElementById('r-pass').value;
-  if (!e||!p) return setErr('Remplissez tous les champs');
+  if (!raw||!p) return setErr('Remplissez tous les champs');
   if (fbReady) {
     document.getElementById('r-txt').innerHTML = '<span class="spin"></span>';
     try { await FB.createUserWithEmailAndPassword(FB.auth, e, p); }
