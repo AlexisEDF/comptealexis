@@ -63,7 +63,6 @@ body{font-family:'Cabinet Grotesk',sans-serif;background:var(--bg);color:var(--t
 .qa-input-wrap input:focus{border-color:var(--border2);}
 .btn-add-op{padding:13px 22px;background:var(--acc);color:#fff;border:none;border-radius:12px;cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:0.9rem;transition:all .2s;white-space:nowrap;}
 .btn-add-op:hover{opacity:.9;transform:translateY(-1px);}
-.ops-section{}
 .ops-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
 .ops-title{font-weight:800;font-size:1.05rem;letter-spacing:-.4px;}
 .ops-count{font-family:'Instrument Mono',monospace;font-size:0.75rem;color:var(--text2);background:var(--card2);border:1px solid var(--border);padding:3px 10px;border-radius:20px;}
@@ -180,7 +179,7 @@ body{font-family:'Cabinet Grotesk',sans-serif;background:var(--bg);color:var(--t
         <button class="btn-add-op" onclick="addOp()">Ajouter +</button>
       </div>
     </div>
-    <div class="ops-section">
+    <div>
       <div class="ops-header">
         <div class="ops-title">Operations</div>
         <div class="ops-count" id="ops-count">0 op.</div>
@@ -266,7 +265,11 @@ window.doLogin = async function() {
   if (!fbReady) { clearFields(); enterApp(); loadLocal(); return; }
   document.getElementById('l-txt').innerHTML = '<span class="spin"></span>';
   try {
-    await FB.signInWithEmailAndPassword(FB.auth, raw + '@moncompte.fr', pw);
+    const cred = await FB.signInWithEmailAndPassword(FB.auth, raw + '@moncompte.fr', pw);
+    const usnap = await FB.get(FB.ref(FB.db, 'users/' + cred.user.uid + '/username'));
+    if (!usnap.exists()) {
+      await FB.set(FB.ref(FB.db, 'users/' + cred.user.uid + '/username'), raw);
+    }
     clearFields();
   } catch(e) {
     setErr(errMsg(e.code));
@@ -281,7 +284,8 @@ window.doRegister = async function() {
   if (!fbReady) { clearFields(); enterApp(); loadLocal(); return; }
   document.getElementById('r-txt').innerHTML = '<span class="spin"></span>';
   try {
-    await FB.createUserWithEmailAndPassword(FB.auth, raw + '@moncompte.fr', pw);
+    const cred = await FB.createUserWithEmailAndPassword(FB.auth, raw + '@moncompte.fr', pw);
+    await FB.set(FB.ref(FB.db, 'users/' + cred.user.uid + '/username'), raw);
     clearFields();
   } catch(e) {
     setErr(errMsg(e.code));
@@ -375,6 +379,7 @@ async function loadAllUsers() {
     document.getElementById('admin-count').textContent = uids.length + ' compte(s)';
     list.innerHTML = uids.map(uid => {
       const uops = all[uid].ops ? Object.values(all[uid].ops) : [];
+      const username = all[uid].username || ('compte-' + uid.substring(0,6));
       const solde = uops.reduce((a,o) => a + o.amount, 0);
       const sc = solde >= 0 ? 'var(--plus)' : 'var(--minus)';
       const sign = solde >= 0 ? '+' : '';
@@ -390,10 +395,14 @@ async function loadAllUsers() {
           }).join('');
       return '<div class="admin-card">'
         +'<div class="admin-card-header" onclick="toggleAdminCard(this)">'
-        +'<div><div style="font-weight:800;font-size:0.95rem">'+(isCurrent?'⭐ ':'')+uid.substring(0,12)+'...'+(isCurrent?' (vous)':'')+'</div>'
-        +'<div style="font-size:0.72rem;color:var(--text2);font-family:Instrument Mono,monospace;margin-top:2px">'+uops.length+' operation(s)</div></div>'
-        +'<div style="display:flex;align-items:center;gap:12px"><span style="font-weight:900;font-size:1rem;color:'+sc+'">'+sign+fmt(solde)+'</span>'
-        +'<span style="color:var(--text2)" class="chev">▼</span></div></div>'
+        +'<div>'
+        +'<div style="font-weight:800;font-size:1rem">'+(isCurrent?'⭐ ':'')+esc(username)+(isCurrent?' (vous)':'')+'</div>'
+        +'<div style="font-size:0.72rem;color:var(--text2);font-family:Instrument Mono,monospace;margin-top:3px">'+uops.length+' operation(s)</div>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:12px">'
+        +'<span style="font-weight:900;font-size:1.1rem;color:'+sc+'">'+sign+fmt(solde)+'</span>'
+        +'<span style="color:var(--text2)" class="chev">▼</span>'
+        +'</div></div>'
         +'<div class="admin-card-body">'+opsHtml+'</div></div>';
     }).join('');
   } catch(e) { console.error('loadAllUsers:', e); }
