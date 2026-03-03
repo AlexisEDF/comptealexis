@@ -403,6 +403,7 @@ body {
     <div class="tabs">
       <button class="tab active" id="tab-login" onclick="switchTab('login')">Connexion</button>
       <button class="tab" id="tab-register" onclick="switchTab('register')">Inscription</button>
+
     </div>
 
     <div id="form-login">
@@ -560,11 +561,11 @@ try {
 }
 
 // ── AUTH ACTIONS ──
-window.switchTab = t => {
-  document.getElementById('form-login').style.display    = t==='login'    ? 'block':'none';
-  document.getElementById('form-register').style.display = t==='register' ? 'block':'none';
-  document.getElementById('tab-login').classList.toggle('active',    t==='login');
-  document.getElementById('tab-register').classList.toggle('active', t==='register');
+window.switchTab = function(t) {
+  document.getElementById('form-login').style.display    = t === 'login'    ? 'block' : 'none';
+  document.getElementById('form-register').style.display = t === 'register' ? 'block' : 'none';
+  document.getElementById('tab-login').className    = 'tab' + (t === 'login'    ? ' active' : '');
+  document.getElementById('tab-register').className = 'tab' + (t === 'register' ? ' active' : '');
   document.getElementById('auth-err').textContent = '';
 };
 
