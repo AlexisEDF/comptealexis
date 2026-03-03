@@ -241,9 +241,20 @@ try {
   const db = getDatabase(app);
   FB = { auth, db, ref, set, get, onValue, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut };
   fbReady = true;
-  onAuthStateChanged(auth, user => {
-    if (user) { fbUser = user; enterApp(); listenFB(); checkAdmin(user.uid); }
-    else { resetApp(); showAuth(); }
+  onAuthStateChanged(auth, async user => {
+    if (user) {
+      fbUser = user;
+      if (user.email && user.email.endsWith('@moncompte.fr')) {
+        const extractedName = user.email.replace('@moncompte.fr', '');
+        try {
+          const usnap = await get(ref(db, 'users/' + user.uid + '/username'));
+          if (!usnap.exists()) {
+            await set(ref(db, 'users/' + user.uid + '/username'), extractedName);
+          }
+        } catch(e) {}
+      }
+      enterApp(); listenFB(); checkAdmin(user.uid);
+    } else { resetApp(); showAuth(); }
   });
 } catch(e) {
   console.warn('Firebase:', e);
@@ -379,7 +390,9 @@ async function loadAllUsers() {
     document.getElementById('admin-count').textContent = uids.length + ' compte(s)';
     list.innerHTML = uids.map(uid => {
       const uops = all[uid].ops ? Object.values(all[uid].ops) : [];
-      const username = all[uid].username || ('compte-' + uid.substring(0,6));
+      // Extract username from stored value, or from email format (xxx@moncompte.fr -> xxx)
+      let username = all[uid].username || '';
+      if (!username) username = 'compte-' + uid.substring(0,6);
       const solde = uops.reduce((a,o) => a + o.amount, 0);
       const sc = solde >= 0 ? 'var(--plus)' : 'var(--minus)';
       const sign = solde >= 0 ? '+' : '';
