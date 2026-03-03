@@ -580,7 +580,7 @@ window.doLogin = async () => {
   if (!raw||!p) return setErr('Remplissez tous les champs');
   if (fbReady) {
     document.getElementById('l-txt').innerHTML = '<span class="spin"></span>';
-    try { await FB.signInWithEmailAndPassword(FB.auth, e, p); }
+    try { await FB.signInWithEmailAndPassword(FB.auth, e, p); document.getElementById('l-email').value=''; document.getElementById('l-pass').value=''; }
     catch(err) { setErr(errMsg(err.code)); document.getElementById('l-txt').textContent='Se connecter'; }
   } else { enterApp(); loadLocal(); }
 };
@@ -592,7 +592,7 @@ window.doRegister = async () => {
   if (!raw||!p) return setErr('Remplissez tous les champs');
   if (fbReady) {
     document.getElementById('r-txt').innerHTML = '<span class="spin"></span>';
-    try { await FB.createUserWithEmailAndPassword(FB.auth, e, p); }
+    try { await FB.createUserWithEmailAndPassword(FB.auth, e, p); document.getElementById('r-email').value=''; document.getElementById('r-pass').value=''; }
     catch(err) { setErr(errMsg(err.code)); document.getElementById('r-txt').textContent='Créer mon compte'; }
   } else { enterApp(); loadLocal(); }
 };
