@@ -318,8 +318,10 @@ window.doRegister = async function() {
 };
 
 window.doLogout = async function() {
-  if (fbReady && FB.auth) await FB.signOut(FB.auth);
-  else { resetApp(); showAuth(); }
+  if (fbReady && FB.auth && fbUser) {
+    try { await FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/lastLogout'), new Date().toISOString()); } catch(e) {}
+    await FB.signOut(FB.auth);
+  } else { resetApp(); showAuth(); }
 };
 
 function clearFields() {
@@ -458,9 +460,14 @@ async function loadAllUsers() {
       }
       const lastLogin = all[uid].lastLogin;
       const lastActivity = all[uid].lastActivity;
-      const isRecent = lastLogin && (Date.now() - new Date(lastLogin).getTime()) < 3600000;
+      const lastLogout = all[uid].lastLogout;
+      const loginTime = lastLogin ? new Date(lastLogin).getTime() : 0;
+      const logoutTime = lastLogout ? new Date(lastLogout).getTime() : 0;
+      // Online = logged in after last logout, and within last 30 min
+      const isRecent = loginTime > logoutTime && (Date.now() - loginTime) < 1800000;
       const activityHtml = '<div class="admin-activity">'
         + '<div class="admin-activity-item"><span class="dot'+(isRecent?'':' old')+'"></span>Connexion : '+timeAgo(lastLogin)+'</div>'
+        + (lastLogout ? '<div class="admin-activity-item"><span class="dot old"></span>Deconnexion : '+timeAgo(lastLogout)+'</div>' : '')
         + '<div class="admin-activity-item"><span class="dot old"></span>Activite : '+timeAgo(lastActivity)+'</div>'
         + '</div>';
 
