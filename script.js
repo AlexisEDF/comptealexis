@@ -291,7 +291,7 @@ window.setType = function(t) {
   } else {
     if (document.getElementById('qa-label').value === 'APL') document.getElementById('qa-label').value = '';
     if (document.getElementById('qa-amount').value === '199') document.getElementById('qa-amount').value = '';
-    document.getElementById('qa-label').placeholder = t === 'dep' ? 'Ex: Pharmacie, Courses...' : 'Ex: Salaire, Remboursement...';
+    document.getElementById('qa-label').placeholder = t === 'dep' ? 'Ex: Assurance' : 'Ex: Cantine, Remboursement...';
   }
 };
 
