@@ -404,24 +404,38 @@ async function loadAllUsers() {
       const sc = solde >= 0 ? 'var(--plus)' : 'var(--minus)';
       const sign = solde >= 0 ? '+' : '';
       const isCurrent = fbUser && uid === fbUser.uid;
+      function buildOpHtml(o) {
+        const icon = o.type==='dep'?'💸':o.type==='apl'?'🏠':'💰';
+        const ac = o.amount>=0?'var(--plus)':'var(--minus)';
+        const s = o.amount>=0?'+':'';
+        const d = new Date(o.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+        let histHtml = '';
+        if (o.history && o.history.length > 0) {
+          histHtml = '<div class="admin-history">';
+          o.history.forEach(function(h) {
+            const hd = new Date(h.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})
+                     + ' ' + new Date(h.date).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+            h.changes.forEach(function(c) {
+              if (c.type === 'amount') {
+                const oldAmt = fmt(o.amount < 0 ? -c.old : c.old);
+                const newAmt = fmt(o.amount < 0 ? -c.new : c.new);
+                histHtml += '<div class="admin-history-row">✎ '+hd+' — montant : <span class="old">'+oldAmt+'</span> → <span class="new">'+newAmt+'</span></div>';
+              } else {
+                histHtml += '<div class="admin-history-row">✎ '+hd+' — libelle : <span class="old">'+esc(c.old)+'</span> → <span class="new">'+esc(c.new)+'</span></div>';
+              }
+            });
+          });
+          histHtml += '</div>';
+        }
+        return '<div class="admin-op-row" style="flex-direction:column;align-items:flex-start">'
+          + '<div style="display:flex;justify-content:space-between;width:100%;padding:4px 0">'
+          + '<span>'+icon+' '+esc(o.label)+' <span style="color:var(--text2);font-size:0.7rem">'+d+'</span></span>'
+          + '<span style="color:'+ac+';font-weight:700">'+s+fmt(o.amount)+'</span>'
+          + '</div>'+histHtml+'</div>';
+      }
       const opsHtml = uops.length === 0
         ? '<div style="color:var(--text2);font-size:0.82rem;padding:8px 0">Aucune operation</div>'
-        : uops.sort((a,b) => new Date(b.date)-new Date(a.date)).map(o => {
-            const icon = o.type==='dep'?'💸':o.type==='apl'?'🏠':'💰';
-            const ac = o.amount>=0?'var(--plus)':'var(--minus)';
-            const s = o.amount>=0?'+':'';
-            const d = new Date(o.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
-            const histHtml = (o.history && o.history.length > 0)
-              ? '<div class="admin-history">'+o.history.map(h => {
-                  const hd = new Date(h.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-                  return h.changes.map(c => c.type==='amount'
-                    ? '<div class="admin-history-row">✎ '+hd+' — montant : <span class="old">'+fmt(o.amount<0?-c.old:c.old)+'</span> → <span class="new">'+fmt(o.amount<0?-c.new:c.new)+'</span></div>'
-                    : '<div class="admin-history-row">✎ '+hd+' — libelle : <span class="old">'+esc(c.old)+'</span> → <span class="new">'+esc(c.new)+'</span></div>'
-                  ).join('')
-                }).join('')+'</div>'
-              : '';
-            return '<div class="admin-op-row" style="flex-direction:column;align-items:flex-start"><div style="display:flex;justify-content:space-between;width:100%"><span>'+icon+' '+esc(o.label)+' <span style="color:var(--text2);font-size:0.7rem">'+d+'</span></span><span style="color:'+ac+';font-weight:700">'+s+fmt(o.amount)+'</span></div>'+histHtml+'</div>';
-          }).join('');
+        : uops.sort((a,b) => new Date(b.date)-new Date(a.date)).map(buildOpHtml).join('');
       return '<div class="admin-card">'
         +'<div class="admin-card-header" onclick="toggleAdminCard(this)">'
         +'<div>'
@@ -565,10 +579,15 @@ function render() {
       +'<div class="op-date">'+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})+' · '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div>'
       +(o.history && o.history.length > 0 ? '<div class="op-history">'+o.history.map(h => {
           const hd = new Date(h.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
-          return h.changes.map(c => c.type==='amount'
-            ? '<span class="op-history-item">✎ '+hd+' : '+fmt(c.type==='amount'&&o.amount<0?-c.old:c.old)+' → '+fmt(c.type==='amount'&&o.amount<0?-c.new:c.new)+'</span>'
-            : '<span class="op-history-item">✎ '+hd+' : "'+esc(c.old)+'" → "'+esc(c.new)+'"</span>'
-          ).join('')
+          return h.changes.map(c => {
+            if (c.type === 'amount') {
+              const oldAmt = o.amount < 0 ? -c.old : c.old;
+              const newAmt = o.amount < 0 ? -c.new : c.new;
+              return '<span class="op-history-item">✎ '+hd+' : '+fmt(oldAmt)+' → '+fmt(newAmt)+'</span>';
+            } else {
+              return '<span class="op-history-item">✎ '+hd+' : '+esc(c.old)+' → '+esc(c.new)+'</span>';
+            }
+          }).join('');
         }).join('')+'</div>' : '')
       +'</div>'
       +'<div class="op-amount '+ac+'">'+sign+fmt(o.amount)+'</div>'
