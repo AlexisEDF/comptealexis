@@ -121,6 +121,11 @@ body{font-family:'Cabinet Grotesk',sans-serif;background:var(--bg);color:var(--t
 .admin-activity-item{font-size:0.72rem;font-family:'Instrument Mono',monospace;color:var(--text2);display:flex;align-items:center;gap:5px;}
 .admin-activity-item .dot{width:6px;height:6px;border-radius:50%;background:var(--plus);display:inline-block;}
 .admin-activity-item .dot.old{background:var(--text3);}
+.admin-deletions{margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);}
+.admin-del-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.83rem;opacity:0.75;}
+.admin-del-row:last-child{border-bottom:none;}
+.admin-del-label{text-decoration:line-through;color:var(--text2);}
+.admin-del-date{font-size:0.7rem;font-family:'Instrument Mono',monospace;color:var(--text3);}
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -481,7 +486,28 @@ async function loadAllUsers() {
         +'<span style="font-weight:900;font-size:1.1rem;color:'+sc+'">'+sign+fmt(solde)+'</span>'
         +'<span style="color:var(--text2)" class="chev">▼</span>'
         +'</div></div>'
-        +'<div class="admin-card-body">'+activityHtml+opsHtml+'</div></div>';
+        // Build deletions html
+        const udels = all[uid].deletions ? Object.values(all[uid].deletions) : [];
+        let delsHtml = '';
+        if (udels.length > 0) {
+          delsHtml = '<div class="admin-deletions"><div style="font-size:0.72rem;font-family:Instrument Mono,monospace;color:var(--minus);margin-bottom:6px;letter-spacing:1px">SUPPRESSIONS ('+udels.length+')</div>';
+          udels.sort((a,b) => new Date(b.deletedAt)-new Date(a.deletedAt)).forEach(function(d) {
+            const icon = d.type==='dep'?'💸':d.type==='apl'?'🏠':'💰';
+            const sign = d.amount>=0?'+':'';
+            const ac = d.amount>=0?'var(--plus)':'var(--minus)';
+            const delDate = new Date(d.deletedAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})
+                          + ' ' + new Date(d.deletedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+            const opDate = new Date(d.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+            delsHtml += '<div class="admin-del-row">'
+              + '<span>'+icon+' <span class="admin-del-label">'+esc(d.label)+'</span> <span class="admin-del-date">ajoutee le '+opDate+'</span></span>'
+              + '<span style="display:flex;align-items:center;gap:10px">'
+              + '<span style="color:'+ac+';font-weight:700;text-decoration:line-through">'+sign+fmt(d.amount)+'</span>'
+              + '<span class="admin-del-date">supprimee le '+delDate+'</span>'
+              + '</span></div>';
+          });
+          delsHtml += '</div>';
+        }
+        +'<div class="admin-card-body">'+activityHtml+opsHtml+delsHtml+'</div></div>';
     }).join('');
   } catch(e) { console.error('loadAllUsers:', e); }
 }
@@ -539,7 +565,23 @@ function flash(id, msg) {
   setTimeout(() => { el.style.borderColor=''; el.placeholder=old; }, 1800);
 }
 
-window.deleteOp = function(id) {
+window.deleteOp = async function(id) {
+  const op = ops.find(o => o.id === id);
+  if (!op) return;
+  // Save deletion log to Firebase
+  if (fbReady && fbUser) {
+    try {
+      const delEntry = {
+        id: op.id,
+        label: op.label,
+        amount: op.amount,
+        type: op.type,
+        date: op.date,
+        deletedAt: new Date().toISOString()
+      };
+      await FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/deletions/' + op.id), delEntry);
+    } catch(e) {}
+  }
   ops = ops.filter(o => o.id !== id);
   saveFB();
   if (!fbReady) render();
