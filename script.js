@@ -300,7 +300,7 @@ window.setType = function(t) {
   } else {
     if (document.getElementById('qa-label').value === 'APL') document.getElementById('qa-label').value = '';
     if (document.getElementById('qa-amount').value === '199') document.getElementById('qa-amount').value = '';
-    document.getElementById('qa-label').placeholder = t === 'dep' ? 'Ex: Assurance...' : 'Ex: Courses...';
+    document.getElementById('qa-label').placeholder = t === 'dep' ? 'Ex: Pharmacie, Courses...' : 'Ex: Salaire, Remboursement...';
   }
 };
 
@@ -401,51 +401,31 @@ window.resetPaye = function() {
 };
 
 window.setFilter = function(m) { filterMonth = m; render(); };
-
-window.setSoldePaye = async function() {
-  const val = parseFloat(document.getElementById('solde-paye-input').value);
-  if (isNaN(val) || val < 0) return;
-  soldePaye = val;
-  document.getElementById('solde-paye-input').value = '';
-  if (fbReady && fbUser) {
-    try { await FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), soldePaye); } catch(e) {}
-  }
-  render();
-};
-
-window.resetSoldePaye = async function() {
-  soldePaye = 0;
-  if (fbReady && fbUser) {
-    try { await FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), 0); } catch(e) {}
-  }
-  render();
-};
-
-async function loadSoldePaye(uid) {
-  if (!fbReady) return;
-  try {
-    const snap = await FB.get(FB.ref(FB.db, 'users/' + uid + '/soldePaye'));
-    if (snap.exists()) { soldePaye = snap.val() || 0; render(); }
-  } catch(e) {}
-}
-
 // ── RENDER ──
 function render() {
   const filtered = filterMonth === 'all' ? ops : ops.filter(o => new Date(o.date).getMonth() === parseInt(filterMonth));
-  const solde = filtered.reduce((a, o) => a + o.amount, 0);
+  const solde = ops.reduce((a, o) => a + o.amount, 0);
   const plus = filtered.filter(o => o.amount > 0 && o.type !== 'apl').reduce((a, o) => a + o.amount, 0);
   const minus = filtered.filter(o => o.amount < 0).reduce((a, o) => a + Math.abs(o.amount), 0);
   const apl = filtered.filter(o => o.type === 'apl').reduce((a, o) => a + o.amount, 0);
-  const soldeNet = solde - soldePaye;
+
+  // Solde restant après paiement
+  const reste = solde - soldePaye;
   const el = document.getElementById('solde-display');
-  el.textContent = fmt(soldeNet);
-  el.className = 'solde-amount ' + (soldeNet > 0 ? 'pos' : soldeNet < 0 ? 'neg' : 'zero');
-  const payeEl = document.getElementById('solde-paye-display');
-  if (payeEl) payeEl.textContent = fmt(soldePaye);
+  el.textContent = fmt(reste >= 0 ? reste : 0);
+  el.className = 'solde-amount ' + (reste > 0 ? 'pos' : reste < 0 ? 'neg' : 'zero');
+
   document.getElementById('total-plus').textContent = fmt(plus);
   document.getElementById('total-minus').textContent = fmt(minus);
   document.getElementById('total-apl').textContent = fmt(apl);
   document.getElementById('ops-count').textContent = filtered.length + ' op.';
+
+  // Update paye display
+  const payeTotal = document.getElementById('paye-total');
+  const payeReste = document.getElementById('paye-reste');
+  if (payeTotal) payeTotal.textContent = fmt(soldePaye);
+  if (payeReste) payeReste.textContent = fmt(reste >= 0 ? reste : 0);
+
   const months = [...new Set(ops.map(o => new Date(o.date).getMonth()))].sort();
   const mf = document.getElementById('month-filter');
   if (months.length > 1) {
@@ -453,6 +433,7 @@ function render() {
       + months.map(m => '<button class="month-pill ' + (filterMonth == m ? 'active' : '') + '" onclick="setFilter(' + m + ')">' + MOIS[m] + '</button>').join('');
     mf.style.display = 'flex';
   } else { mf.style.display = 'none'; }
+
   const list = document.getElementById('ops-list');
   if (filtered.length === 0) {
     list.innerHTML = '<div class="empty"><div class="empty-icon">📂</div><div class="empty-txt">Aucune operation' + (filterMonth !== 'all' ? ' ce mois-ci' : ' — ajoutez-en une ci-dessus') + '</div></div>';
@@ -501,4 +482,4 @@ window.toggleTheme = function() {
   document.getElementById('theme-btn').textContent = dark ? '🌙' : '☀️';
 };
 
-if (!fbReady) { loadLocal(); updatePayeDisplay(); }
+if (!fbReady) { loadLocal(); render(); }
