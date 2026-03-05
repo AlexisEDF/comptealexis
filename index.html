@@ -55,13 +55,13 @@
         </div>
         <div style="flex:1;min-width:140px">
           <div class="solde-label" style="color:var(--minus)">Solde payé</div>
-          <div style="font-size:clamp(1.8rem,6vw,2.8rem);font-weight:900;letter-spacing:-1.5px;color:var(--minus)" id="solde-paye-display">0,00 €</div>
+          <div style="font-size:clamp(1.8rem,6vw,2.8rem);font-weight:900;letter-spacing:-1.5px;color:var(--minus)" id="paye-total">0,00 €</div>
           <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-            <input type="number" id="solde-paye-input" step="0.01" min="0" placeholder="Montant payé..."
+            <input type="number" id="paye-input" step="0.01" min="0" placeholder="Montant payé..."
               style="flex:1;padding:8px 12px;background:var(--surface);border:1px solid var(--minus);border-radius:10px;color:var(--text);font-family:Cabinet Grotesk,sans-serif;font-size:0.88rem;outline:none;width:100%"
-              onkeydown="if(event.key==='Enter')setSoldePaye()">
-            <button onclick="setSoldePaye()" style="padding:8px 14px;background:var(--minus-bg);border:1px solid var(--minus);border-radius:10px;color:var(--minus);font-family:Cabinet Grotesk,sans-serif;font-weight:800;font-size:0.82rem;cursor:pointer;white-space:nowrap">Valider</button>
-            <button onclick="resetSoldePaye()" title="Remettre à zéro" style="padding:8px 10px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-family:Cabinet Grotesk,sans-serif;font-size:0.82rem;cursor:pointer">✕</button>
+              onkeydown="if(event.key==='Enter')addPaye()">
+            <button onclick="addPaye()" style="padding:8px 14px;background:var(--minus-bg);border:1px solid var(--minus);border-radius:10px;color:var(--minus);font-family:Cabinet Grotesk,sans-serif;font-weight:800;font-size:0.82rem;cursor:pointer;white-space:nowrap">Valider</button>
+            <button onclick="resetPaye()" title="Remettre à zéro" style="padding:8px 10px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-family:Cabinet Grotesk,sans-serif;font-size:0.82rem;cursor:pointer">✕</button>
           </div>
         </div>
       </div>
@@ -69,26 +69,6 @@
         <div><div class="mini-label">Entrees</div><div class="mini-val p" id="total-plus">0,00 €</div></div>
         <div><div class="mini-label">Depenses</div><div class="mini-val m" id="total-minus">0,00 €</div></div>
         <div><div class="mini-label">APL recues</div><div class="mini-val a" id="total-apl">0,00 €</div></div>
-      </div>
-    </div>
-    <div class="solde-paye-block">
-      <div class="solde-paye-header">
-        <div class="solde-paye-title">💸 Solde payé</div>
-        <button class="btn-reset-paye" onclick="resetPaye()">Réinitialiser</button>
-      </div>
-      <div class="solde-paye-row">
-        <input type="number" class="solde-paye-input" id="paye-input" step="0.01" min="0" placeholder="Montant payé..." onkeydown="if(event.key==='Enter')addPaye()">
-        <button class="btn-paye" onclick="addPaye()">Enregistrer</button>
-      </div>
-      <div class="paye-summary">
-        <div class="paye-summary-item">
-          <div class="paye-summary-label">Total payé</div>
-          <div class="paye-summary-val paye" id="paye-total">0,00 €</div>
-        </div>
-        <div class="paye-summary-item">
-          <div class="paye-summary-label">Solde restant</div>
-          <div class="paye-summary-val reste" id="paye-reste">0,00 €</div>
-        </div>
       </div>
     </div>
     <div class="apl-badge">
