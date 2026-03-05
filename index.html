@@ -21,12 +21,12 @@
       <button class="tab" id="tab-register" onclick="switchTab('register')">Inscription</button>
     </div>
     <div id="form-login">
-      <div class="field"><label>Identifiant</label><input type="text" id="l-id" placeholder="Ex: alexis, jean..." onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="field"><label>Identifiant</label><input type="text" id="l-id" placeholder="" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <div class="field"><label>Mot de passe</label><input type="password" id="l-pw" placeholder="Min. 6 caracteres" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <button class="btn-main" onclick="doLogin()"><span id="l-txt">Se connecter</span></button>
     </div>
     <div id="form-register" style="display:none">
-      <div class="field"><label>Identifiant</label><input type="text" id="r-id" placeholder="Ex: alexis, jean..."></div>
+      <div class="field"><label>Identifiant</label><input type="text" id="r-id" placeholder=""></div>
       <div class="field"><label>Mot de passe</label><input type="password" id="r-pw" placeholder="Min. 6 caracteres"></div>
       <button class="btn-main" onclick="doRegister()"><span id="r-txt">Creer mon compte</span></button>
     </div>
