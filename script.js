@@ -370,23 +370,23 @@ window.saveEdit = function() {
 
 window.addPaye = function() {
   const val = parseFloat(document.getElementById('paye-input').value);
-  if (isNaN(val) || val < 0) return;
+  if (isNaN(val) || val <= 0) return;
   soldePaye += val;
   localStorage.setItem('mc_paye', soldePaye);
+  document.getElementById('paye-input').value = '';
+  render(); // mise a jour immediate
   if (fbReady && fbUser) {
     FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), soldePaye).catch(() => {});
   }
-  document.getElementById('paye-input').value = '';
-  render();
 };
 
 window.resetPaye = function() {
   soldePaye = 0;
   localStorage.setItem('mc_paye', 0);
+  render(); // mise a jour immediate
   if (fbReady && fbUser) {
     FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), 0).catch(() => {});
   }
-  render();
 };
 
 window.setFilter = function(m) { filterMonth = m; render(); };
