@@ -140,13 +140,13 @@ function listenFB() {
   FB.onValue(FB.ref(FB.db, 'users/' + fbUser.uid + '/ops'), snap => {
     ops = snap.exists() ? Object.values(snap.val()) : [];
     render();
-    updatePayeDisplay();
+    render();
   });
   FB.onValue(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), snap => {
     if (snap.exists()) {
       soldePaye = snap.val() || 0;
       localStorage.setItem('mc_paye', soldePaye);
-      updatePayeDisplay();
+      render();
     }
   });
 }
@@ -367,17 +367,7 @@ window.saveEdit = function() {
 
 // ── SOLDE PAYE ──
 
-function updatePayeDisplay() {
-  const solde = ops.reduce((a, o) => a + o.amount, 0);
-  const reste = solde - soldePaye;
-  document.getElementById('paye-total').textContent = fmt(soldePaye);
-  document.getElementById('paye-reste').textContent = fmt(reste >= 0 ? reste : 0);
-  // Update solde display to show remaining
-  const el = document.getElementById('solde-display');
-  const affiche = reste >= 0 ? reste : 0;
-  el.textContent = fmt(affiche);
-  el.className = 'solde-amount ' + (affiche > 0 ? 'pos' : affiche < 0 ? 'neg' : 'zero');
-}
+
 
 window.addPaye = function() {
   const val = parseFloat(document.getElementById('paye-input').value);
@@ -388,7 +378,7 @@ window.addPaye = function() {
     FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), soldePaye).catch(() => {});
   }
   document.getElementById('paye-input').value = '';
-  updatePayeDisplay();
+  render();
 };
 
 window.resetPaye = function() {
@@ -397,10 +387,22 @@ window.resetPaye = function() {
   if (fbReady && fbUser) {
     FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), 0).catch(() => {});
   }
-  updatePayeDisplay();
+  render();
 };
 
 window.setFilter = function(m) { filterMonth = m; render(); };
+async function loadSoldePaye(uid) {
+  if (!fbReady) return;
+  try {
+    const snap = await FB.get(FB.ref(FB.db, 'users/' + uid + '/soldePaye'));
+    if (snap.exists()) {
+      soldePaye = snap.val() || 0;
+      localStorage.setItem('mc_paye', soldePaye);
+      render();
+    }
+  } catch(e) {}
+}
+
 // ── RENDER ──
 function render() {
   const filtered = filterMonth === 'all' ? ops : ops.filter(o => new Date(o.date).getMonth() === parseInt(filterMonth));
