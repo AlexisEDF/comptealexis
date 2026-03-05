@@ -137,17 +137,12 @@ function enterApp() {
 // ── FIREBASE DATA ──
 function listenFB() {
   if (!fbReady || !fbUser) return;
+  // Écoute les ops en temps réel
   FB.onValue(FB.ref(FB.db, 'users/' + fbUser.uid + '/ops'), snap => {
     ops = snap.exists() ? Object.values(snap.val()) : [];
     render();
   });
-  FB.onValue(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), snap => {
-    if (snap.exists()) {
-      soldePaye = snap.val() || 0;
-      localStorage.setItem('mc_paye', soldePaye);
-      render();
-    }
-  });
+  // PAS de listener sur soldePaye — on gère localement pour éviter les conflits
 }
 
 async function saveFB() {
@@ -160,6 +155,40 @@ async function saveFB() {
 
 function saveLocal() { localStorage.setItem('mc_ops', JSON.stringify(ops)); }
 function loadLocal() { ops = JSON.parse(localStorage.getItem('mc_ops') || '[]'); render(); }
+
+// ── SOLDE PAYE ──
+async function loadSoldePaye(uid) {
+  if (!fbReady) return;
+  try {
+    const snap = await FB.get(FB.ref(FB.db, 'users/' + uid + '/soldePaye'));
+    if (snap.exists()) {
+      soldePaye = snap.val() || 0;
+      localStorage.setItem('mc_paye', soldePaye);
+      render();
+    }
+  } catch(e) {}
+}
+
+window.addPaye = function() {
+  const val = parseFloat(document.getElementById('paye-input').value);
+  if (isNaN(val) || val <= 0) return;
+  soldePaye += val;
+  localStorage.setItem('mc_paye', soldePaye);
+  document.getElementById('paye-input').value = '';
+  render(); // mise à jour immédiate
+  if (fbReady && fbUser) {
+    FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), soldePaye).catch(() => {});
+  }
+};
+
+window.resetPaye = function() {
+  soldePaye = 0;
+  localStorage.setItem('mc_paye', 0);
+  render(); // mise à jour immédiate
+  if (fbReady && fbUser) {
+    FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), 0).catch(() => {});
+  }
+};
 
 // ── ADMIN ──
 async function checkAdmin(uid) {
@@ -185,7 +214,6 @@ async function loadAllUsers() {
     const all = snap.val();
     const uids = Object.keys(all);
     document.getElementById('admin-count').textContent = uids.length + ' compte(s)';
-
     list.innerHTML = uids.map(uid => {
       const uops = all[uid].ops ? Object.values(all[uid].ops) : [];
       let username = all[uid].username || '';
@@ -299,7 +327,7 @@ window.setType = function(t) {
   } else {
     if (document.getElementById('qa-label').value === 'APL') document.getElementById('qa-label').value = '';
     if (document.getElementById('qa-amount').value === '199') document.getElementById('qa-amount').value = '';
-    document.getElementById('qa-label').placeholder = t === 'dep' ? 'Ex: Pharmacie, Courses...' : 'Ex: Salaire, Remboursement...';
+    document.getElementById('qa-label').placeholder = t === 'dep' ? 'Assurance...' : 'Courses, Remboursement...';
   }
 };
 
@@ -364,43 +392,7 @@ window.saveEdit = function() {
   closeEdit();
 };
 
-// ── SOLDE PAYE ──
-
-
-
-window.addPaye = function() {
-  const val = parseFloat(document.getElementById('paye-input').value);
-  if (isNaN(val) || val <= 0) return;
-  soldePaye += val;
-  localStorage.setItem('mc_paye', soldePaye);
-  document.getElementById('paye-input').value = '';
-  render(); // mise a jour immediate
-  if (fbReady && fbUser) {
-    FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), soldePaye).catch(() => {});
-  }
-};
-
-window.resetPaye = function() {
-  soldePaye = 0;
-  localStorage.setItem('mc_paye', 0);
-  render(); // mise a jour immediate
-  if (fbReady && fbUser) {
-    FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), 0).catch(() => {});
-  }
-};
-
 window.setFilter = function(m) { filterMonth = m; render(); };
-async function loadSoldePaye(uid) {
-  if (!fbReady) return;
-  try {
-    const snap = await FB.get(FB.ref(FB.db, 'users/' + uid + '/soldePaye'));
-    if (snap.exists()) {
-      soldePaye = snap.val() || 0;
-      localStorage.setItem('mc_paye', soldePaye);
-      render();
-    }
-  } catch(e) {}
-}
 
 // ── RENDER ──
 function render() {
@@ -410,22 +402,18 @@ function render() {
   const minus = filtered.filter(o => o.amount < 0).reduce((a, o) => a + Math.abs(o.amount), 0);
   const apl = filtered.filter(o => o.type === 'apl').reduce((a, o) => a + o.amount, 0);
 
-  // Solde restant après paiement
   const reste = solde - soldePaye;
   const el = document.getElementById('solde-display');
   el.textContent = fmt(reste >= 0 ? reste : 0);
   el.className = 'solde-amount ' + (reste > 0 ? 'pos' : reste < 0 ? 'neg' : 'zero');
 
+  const payeTotal = document.getElementById('paye-total');
+  if (payeTotal) payeTotal.textContent = fmt(soldePaye);
+
   document.getElementById('total-plus').textContent = fmt(plus);
   document.getElementById('total-minus').textContent = fmt(minus);
   document.getElementById('total-apl').textContent = fmt(apl);
   document.getElementById('ops-count').textContent = filtered.length + ' op.';
-
-  // Update paye display
-  const payeTotal = document.getElementById('paye-total');
-  const payeReste = document.getElementById('paye-reste');
-  if (payeTotal) payeTotal.textContent = fmt(soldePaye);
-  if (payeReste) payeReste.textContent = fmt(reste >= 0 ? reste : 0);
 
   const months = [...new Set(ops.map(o => new Date(o.date).getMonth()))].sort();
   const mf = document.getElementById('month-filter');
