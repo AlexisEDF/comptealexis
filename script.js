@@ -140,7 +140,6 @@ function listenFB() {
   FB.onValue(FB.ref(FB.db, 'users/' + fbUser.uid + '/ops'), snap => {
     ops = snap.exists() ? Object.values(snap.val()) : [];
     render();
-    render();
   });
   FB.onValue(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), snap => {
     if (snap.exists()) {
