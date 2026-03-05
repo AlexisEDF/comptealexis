@@ -147,3 +147,21 @@ body{font-family:'Cabinet Grotesk',sans-serif;background:var(--bg);color:var(--t
   .solde-amount{font-size:2.4rem;}
   .qa-row{flex-direction:column;}
 }
+
+/* SOLDE PAYE */
+.solde-paye-block{background:var(--card);border:1px solid rgba(248,113,113,0.25);border-radius:22px;padding:24px 28px;margin-bottom:20px;}
+.solde-paye-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.solde-paye-title{font-family:'Instrument Mono',monospace;font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--minus);}
+.solde-paye-row{display:flex;gap:10px;align-items:center;}
+.solde-paye-input{flex:1;padding:12px 16px;background:var(--surface);border:1px solid rgba(248,113,113,0.3);border-radius:12px;color:var(--text);font-family:'Cabinet Grotesk',sans-serif;font-size:0.95rem;font-weight:700;outline:none;transition:border .2s;}
+.solde-paye-input:focus{border-color:var(--minus);box-shadow:0 0 0 3px rgba(248,113,113,0.1);}
+.btn-paye{padding:12px 20px;background:var(--minus-bg);border:1px solid var(--minus);color:var(--minus);border-radius:12px;cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:0.88rem;transition:all .2s;white-space:nowrap;}
+.btn-paye:hover{background:var(--minus);color:#fff;}
+.btn-reset-paye{padding:12px 14px;background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:12px;cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;font-size:0.82rem;transition:all .2s;}
+.btn-reset-paye:hover{border-color:var(--border2);color:var(--text);}
+.paye-summary{display:flex;gap:20px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
+.paye-summary-item{flex:1;}
+.paye-summary-label{font-size:0.7rem;font-family:'Instrument Mono',monospace;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.paye-summary-val{font-size:1.2rem;font-weight:900;letter-spacing:-.5px;}
+.paye-summary-val.reste{color:var(--plus);}
+.paye-summary-val.paye{color:var(--minus);}

@@ -11,6 +11,7 @@ const FB_CFG = {
 const MOIS = ['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
 let ops = [], fbReady = false, fbUser = null, FB = {};
 let currentType = 'dep', editId = null, filterMonth = 'all';
+let soldePaye = parseFloat(localStorage.getItem('mc_paye') || '0');
 let isAdmin = false, showingAdmin = false;
 
 // ── FIREBASE INIT ──
@@ -36,7 +37,7 @@ try {
         } catch(e) {}
       }
       try { await set(ref(db, 'users/' + user.uid + '/lastLogin'), new Date().toISOString()); } catch(e) {}
-      enterApp(); listenFB(); checkAdmin(user.uid);
+      enterApp(); listenFB(); checkAdmin(user.uid); loadSoldePaye(user.uid);
     } else { resetApp(); showAuth(); }
   });
 } catch(e) {
@@ -139,6 +140,14 @@ function listenFB() {
   FB.onValue(FB.ref(FB.db, 'users/' + fbUser.uid + '/ops'), snap => {
     ops = snap.exists() ? Object.values(snap.val()) : [];
     render();
+    updatePayeDisplay();
+  });
+  FB.onValue(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), snap => {
+    if (snap.exists()) {
+      soldePaye = snap.val() || 0;
+      localStorage.setItem('mc_paye', soldePaye);
+      updatePayeDisplay();
+    }
   });
 }
 
@@ -291,7 +300,7 @@ window.setType = function(t) {
   } else {
     if (document.getElementById('qa-label').value === 'APL') document.getElementById('qa-label').value = '';
     if (document.getElementById('qa-amount').value === '199') document.getElementById('qa-amount').value = '';
-    document.getElementById('qa-label').placeholder = t === 'dep' ? 'Ex: Assurance...' : 'Ex: Cantine, Remboursement...';
+    document.getElementById('qa-label').placeholder = t === 'dep' ? 'Ex: Pharmacie, Courses...' : 'Ex: Salaire, Remboursement...';
   }
 };
 
@@ -356,7 +365,69 @@ window.saveEdit = function() {
   closeEdit();
 };
 
+// ── SOLDE PAYE ──
+
+function updatePayeDisplay() {
+  const solde = ops.reduce((a, o) => a + o.amount, 0);
+  const reste = solde - soldePaye;
+  document.getElementById('paye-total').textContent = fmt(soldePaye);
+  document.getElementById('paye-reste').textContent = fmt(reste >= 0 ? reste : 0);
+  // Update solde display to show remaining
+  const el = document.getElementById('solde-display');
+  const affiche = reste >= 0 ? reste : 0;
+  el.textContent = fmt(affiche);
+  el.className = 'solde-amount ' + (affiche > 0 ? 'pos' : affiche < 0 ? 'neg' : 'zero');
+}
+
+window.addPaye = function() {
+  const val = parseFloat(document.getElementById('paye-input').value);
+  if (isNaN(val) || val < 0) return;
+  soldePaye += val;
+  localStorage.setItem('mc_paye', soldePaye);
+  if (fbReady && fbUser) {
+    FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), soldePaye).catch(() => {});
+  }
+  document.getElementById('paye-input').value = '';
+  updatePayeDisplay();
+};
+
+window.resetPaye = function() {
+  soldePaye = 0;
+  localStorage.setItem('mc_paye', 0);
+  if (fbReady && fbUser) {
+    FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), 0).catch(() => {});
+  }
+  updatePayeDisplay();
+};
+
 window.setFilter = function(m) { filterMonth = m; render(); };
+
+window.setSoldePaye = async function() {
+  const val = parseFloat(document.getElementById('solde-paye-input').value);
+  if (isNaN(val) || val < 0) return;
+  soldePaye = val;
+  document.getElementById('solde-paye-input').value = '';
+  if (fbReady && fbUser) {
+    try { await FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), soldePaye); } catch(e) {}
+  }
+  render();
+};
+
+window.resetSoldePaye = async function() {
+  soldePaye = 0;
+  if (fbReady && fbUser) {
+    try { await FB.set(FB.ref(FB.db, 'users/' + fbUser.uid + '/soldePaye'), 0); } catch(e) {}
+  }
+  render();
+};
+
+async function loadSoldePaye(uid) {
+  if (!fbReady) return;
+  try {
+    const snap = await FB.get(FB.ref(FB.db, 'users/' + uid + '/soldePaye'));
+    if (snap.exists()) { soldePaye = snap.val() || 0; render(); }
+  } catch(e) {}
+}
 
 // ── RENDER ──
 function render() {
@@ -365,9 +436,12 @@ function render() {
   const plus = filtered.filter(o => o.amount > 0 && o.type !== 'apl').reduce((a, o) => a + o.amount, 0);
   const minus = filtered.filter(o => o.amount < 0).reduce((a, o) => a + Math.abs(o.amount), 0);
   const apl = filtered.filter(o => o.type === 'apl').reduce((a, o) => a + o.amount, 0);
+  const soldeNet = solde - soldePaye;
   const el = document.getElementById('solde-display');
-  el.textContent = fmt(solde);
-  el.className = 'solde-amount ' + (solde > 0 ? 'pos' : solde < 0 ? 'neg' : 'zero');
+  el.textContent = fmt(soldeNet);
+  el.className = 'solde-amount ' + (soldeNet > 0 ? 'pos' : soldeNet < 0 ? 'neg' : 'zero');
+  const payeEl = document.getElementById('solde-paye-display');
+  if (payeEl) payeEl.textContent = fmt(soldePaye);
   document.getElementById('total-plus').textContent = fmt(plus);
   document.getElementById('total-minus').textContent = fmt(minus);
   document.getElementById('total-apl').textContent = fmt(apl);
@@ -427,4 +501,4 @@ window.toggleTheme = function() {
   document.getElementById('theme-btn').textContent = dark ? '🌙' : '☀️';
 };
 
-if (!fbReady) loadLocal();
+if (!fbReady) { loadLocal(); updatePayeDisplay(); }
